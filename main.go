@@ -102,6 +102,7 @@ func Start(SeedConfig Config) {
 
 	logger.Info("tenderseed",
 		"key", nodeKey.ID(),
+		"key path", nodeKeyFilePath,
 		"listen", SeedConfig.ListenAddress,
 		"chain", chainID,
 		"strict-routing", SeedConfig.AddrBookStrict,
