@@ -30,16 +30,16 @@ type Config struct {
 }
 
 // DefaultConfig returns a seed config initialized with default values
-func DefaultConfig() *Config {
+func DefaultConfig(homeDir string) *Config {
 	return &Config{
-		ListenAddress:       "tcp://0.0.0.0:6969",
-		ChainID:             "osmosis-1",
-		NodeKeyFile:         "config/node_key.json",
-		AddrBookFile:        "data/addrbook.json",
+		ListenAddress:       "tcp://0.0.0.0:36656",
+		ChainID:             "columbus-5",
+		NodeKeyFile:         filepath.Join(homeDir, "config/node_key.json"),
+		AddrBookFile:        filepath.Join(homeDir, "data/addrbook.json"),
 		AddrBookStrict:      true,
 		MaxNumInboundPeers:  1000,
 		MaxNumOutboundPeers: 1000,
-		Seeds:               "1b077d96ceeba7ef503fb048f343a538b2dcdf1b@136.243.218.244:26656,2308bed9e096a8b96d2aa343acc1147813c59ed2@3.225.38.25:26656,085f62d67bbf9c501e8ac84d4533440a1eef6c45@95.217.196.54:26656,f515a8599b40f0e84dfad935ba414674ab11a668@osmosis.blockpane.com:26656",
+		Seeds:               "e999fc20aa5b87c1acef8677cf495ad85061cfb9@seed.terra.delightlabs.io:26656,6d8e943c049a80c161a889cb5fcf3d184215023e@public-seed2.terra.dev:26656,87048bf71526fb92d73733ba3ddb79b7a83ca11e@public-seed.terra.dev:26656",
 	}
 }
 
@@ -47,20 +47,24 @@ func DefaultConfig() *Config {
 func main() {
 	idOverride := os.Getenv("ID")
 	seedOverride := os.Getenv("SEEDS")
+	listenAddressOverride := os.Getenv("LISTENADDRESS")
 	userHomeDir, err := homedir.Dir()
 	if err != nil {
 		panic(err)
 	}
-	homeDir := filepath.Join(userHomeDir, ".tenderseed")
+	homeDir := filepath.Join(userHomeDir, ".tinyseed")
 	configFile := "config/config.toml"
 	configFilePath := filepath.Join(homeDir, configFile)
 	MkdirAllPanic(filepath.Dir(configFilePath), os.ModePerm)
-	SeedConfig := DefaultConfig()
+	SeedConfig := DefaultConfig(homeDir)
 	if idOverride != "" {
 		SeedConfig.ChainID = idOverride
 	}
 	if seedOverride != "" {
 		SeedConfig.Seeds = seedOverride
+	}
+	if listenAddressOverride != "" {
+		SeedConfig.ListenAddress = listenAddressOverride
 	}
 	Start(*SeedConfig)
 }
@@ -90,10 +94,10 @@ func Start(SeedConfig Config) {
 	cfg.AllowDuplicateIP = true
 
 	// allow a lot of inbound peers since we disconnect from them quickly in seed mode
-	cfg.MaxNumInboundPeers = 3000
+	cfg.MaxNumInboundPeers = SeedConfig.MaxNumInboundPeers
 
 	// keep trying to make outbound connections to exchange peering info
-	cfg.MaxNumOutboundPeers = 400
+	cfg.MaxNumOutboundPeers = SeedConfig.MaxNumOutboundPeers
 
 	nodeKey, err := p2p.LoadOrGenNodeKey(nodeKeyFilePath)
 	if err != nil {
@@ -121,13 +125,13 @@ func Start(SeedConfig Config) {
 			0,
 		)
 
-	// NodeInfo gets info on yhour node
+	// NodeInfo gets info on your node
 	nodeInfo := p2p.DefaultNodeInfo{
 		ProtocolVersion: protocolVersion,
 		DefaultNodeID:   nodeKey.ID(),
 		ListenAddr:      SeedConfig.ListenAddress,
 		Network:         chainID,
-		Version:         "0.6.9",
+		Version:         "0.5.9",
 		Channels:        []byte{pex.PexChannel},
 		Moniker:         fmt.Sprintf("%s-seed", chainID),
 	}
